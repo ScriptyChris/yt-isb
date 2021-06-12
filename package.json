@@ -1,0 +1,28 @@
+{
+  "name": "YouTube-Login-Only",
+  "description": "Use YouTube while being logged to Google in separate browser session",
+  "version": "1.0.0",
+  "author": "ScriptyChris",
+  "keywords": [
+    "youtube",
+    "log-in"
+  ],
+  "license": "ISC",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prettier": "prettier --write *.js",
+    "eslint": "eslint *.js",
+    "start:dev": "nodemon --exec \"npm run prettier && npm run eslint && node index.js\"",
+    "start:prod": "node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^10.0.0",
+    "puppeteer-core": "^10.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^7.28.0",
+    "nodemon": "^2.0.7",
+    "prettier": "^2.3.1"
+  }
+}
