@@ -1,8 +1,9 @@
 const puppeteer = require('puppeteer-core');
+const createNavPreventionInfoPopup = require('./navPreventionPopup');
 
 const YOUTUBE_URL = 'https://www.youtube.com/';
 const YOUTUBE_URL_REGEXP = /^(https:\/\/(www\.)?youtube\.com)/;
-const allowedPageUrlRegExp = new RegExp(`${YOUTUBE_URL_REGEXP.source}|(about:blank$)`);
+const allowedPageUrlRegExp = new RegExp(`${YOUTUBE_URL_REGEXP.source}|https://accounts.google.com|(about:blank$)`);
 
 const isDisallowedPageUrl = (url) => !allowedPageUrlRegExp.test(url);
 const attachPageEvents = async (page) => {
@@ -18,6 +19,7 @@ const attachPageEvents = async (page) => {
       const pageToGoTo = YOUTUBE_URL_REGEXP.test(pageUrl) ? pageUrl : YOUTUBE_URL;
 
       await page.goto(pageToGoTo);
+      await createNavPreventionInfoPopup(page.evaluate.bind(page));
     } else {
       await req.continue();
     }
