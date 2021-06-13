@@ -1,4 +1,6 @@
-# YouTube-Login-Only
+# YT-isb
+
+YouTube in sandboxed browser
 
 ## About
 
