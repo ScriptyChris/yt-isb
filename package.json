@@ -8,13 +8,13 @@
     "log-in"
   ],
   "license": "ISC",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "prettier": "prettier --write *.js",
-    "eslint": "eslint *.js",
-    "start:dev": "nodemon --exec \"npm run prettier && npm run eslint && node index.js\"",
-    "start:prod": "node index.js"
+    "prettier": "prettier --write src",
+    "eslint": "eslint src",
+    "start:dev": "nodemon --exec \"npm run prettier && npm run eslint && node src/index.js\"",
+    "start:prod": "node src/index.js"
   },
   "dependencies": {
     "dotenv": "^10.0.0",

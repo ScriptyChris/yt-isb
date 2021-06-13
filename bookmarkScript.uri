@@ -1,6 +1,0 @@
-javascript: (() => {
-  const APPLICATION_PORT = 3003;
-
-  fetch(`http://127.0.0.1:${APPLICATION_PORT}/youtube-app`, { mode: 'no-cors' })
-    .then(() => console.log('YouTube app started!'), (error) => console.error('YouTube app error:', error));
-})();
