@@ -2,26 +2,26 @@ const app = require('express')();
 const launchYouTubeApp = require('./youtube-launcher');
 
 let isBrowserLaunched = false;
-let isPageOpened = false;
 let restoreBrowserView = () => {};
 
 const handleGETEndpoint = async (_, res) => {
   console.log('\n----\nRequest received');
 
-  if (isBrowserLaunched && isPageOpened) {
+  if (isBrowserLaunched) {
     console.log('Restore browser view', restoreBrowserView);
+
     restoreBrowserView().then(getOnSuccess(res), getOnError(res));
   } else {
     console.log('Launch YT app');
-    launchYouTubeApp(markDisconnectedBrowser, markClosedPage).then(getOnSuccess(res), getOnError(res));
+
+    launchYouTubeApp(markDisconnectedBrowser).then(getOnSuccess(res), getOnError(res));
   }
 };
 const getOnSuccess = (res) => {
   return function onSuccess(_restoreBrowserView) {
-    console.log('Ok');
+    console.log('YouTube loaded');
 
     isBrowserLaunched = true;
-    isPageOpened = true;
 
     if (_restoreBrowserView) {
       restoreBrowserView = _restoreBrowserView;
@@ -35,7 +35,6 @@ const getOnError = (res) => {
     console.error('YouTube app error:', error);
 
     isBrowserLaunched = false;
-    isPageOpened = false;
     restoreBrowserView = () => {};
 
     res.status(500).send();
@@ -45,12 +44,6 @@ const markDisconnectedBrowser = async () => {
   console.log('Browser disconnected');
 
   isBrowserLaunched = false;
-  isPageOpened = false;
-};
-const markClosedPage = async () => {
-  console.log('Page closed');
-
-  isPageOpened = false;
 };
 
 function listenToYouTubeNavRequests() {
