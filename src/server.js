@@ -8,7 +8,7 @@ const handleGETEndpoint = async (_, res) => {
   console.log('\n----\nRequest received');
 
   if (isBrowserLaunched) {
-    console.log('Restore browser view', restoreBrowserView);
+    console.log('Restore browser view');
 
     restoreBrowserView().then(getOnSuccess(res), getOnError(res));
   } else {

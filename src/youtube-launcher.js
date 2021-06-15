@@ -1,31 +1,54 @@
-const puppeteer = require('puppeteer-core');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+puppeteer.use(StealthPlugin());
 const createNavPreventionInfoPopup = require('./navPreventionPopup');
 
 const YOUTUBE_URL = 'https://www.youtube.com/';
-const YOUTUBE_URL_REGEXP = /^(https:\/\/(((www\.)?(youtube))|((consent\.)?(youtube|google)))\.[a-z]+)/;
-const allowedPageUrlRegExp = new RegExp(
-  `${YOUTUBE_URL_REGEXP.source}|https://accounts[.]google[.][a-z]+|(about:blank$)`
-);
+const ABOUT_BLANK_URL = 'about:blank';
 
-const isDisallowedPageUrl = (url) => !allowedPageUrlRegExp.test(url);
-const attachPageEvents = async (page) => {
-  await page.setRequestInterception(true);
+const REG_EXPS = {
+  YOUTUBE_URL_REGEXP: /^(http[s]?:\/\/)?(www\.)?youtube\.[^.]+\/.*/,
+  GOOGLE_SEARCH_URL_REGEXP: /^(http[s]?:\/\/)?(www\.)?google\.[^.]+\/.*/,
+  GOOGLE_SERVICES_URL_REGEXP: /^(http[s]?:\/\/)?([a-z]+\.)?(youtube|google)\.[^.]+\/.*/,
+  NON_STANDARD_URL_REGEXP: new RegExp(`^((${ABOUT_BLANK_URL}$)|(chrome://))`),
+};
 
-  page.on('request', async (req) => {
-    if (req.isNavigationRequest() && isDisallowedPageUrl(req.url())) {
-      console.log('Aborted req to nav beyond YouTube! /req.url:', req.url(), ' /page.url:', page.url());
+const isAllowedPageUrl = (url) =>
+  REG_EXPS.NON_STANDARD_URL_REGEXP.test(url) ||
+  (REG_EXPS.GOOGLE_SERVICES_URL_REGEXP.test(url) && !REG_EXPS.GOOGLE_SEARCH_URL_REGEXP.test(url));
+const handlePageNavigations = (page) => {
+  console.log('[handlePageNavigations] url:', page.url());
 
-      await req.abort();
+  page.on('framenavigated', async (frame) => {
+    console.log('\n[framenavigated] frame.url:', frame.url());
+
+    if (!isAllowedPageUrl(frame.url())) {
+      console.log('Detected navigation outside of allowed URLs scope! Going back to YouTube...');
 
       const pageUrl = page.url();
-      const pageToGoTo = YOUTUBE_URL_REGEXP.test(pageUrl) ? pageUrl : YOUTUBE_URL;
+      const goBackPageUrl = REG_EXPS.YOUTUBE_URL_REGEXP.test(pageUrl) ? pageUrl : YOUTUBE_URL;
 
-      await page.goto(pageToGoTo);
+      await page.goto(goBackPageUrl);
       await createNavPreventionInfoPopup(page.evaluate.bind(page));
-    } else {
-      await req.continue();
     }
   });
+};
+const openAppropriatePage = async ({ browserPages, browserNewPage }) => {
+  const pages = await browserPages();
+  const isSingleBlankPage = pages.length === 1 && pages[0].url() === ABOUT_BLANK_URL;
+
+  if (isSingleBlankPage) {
+    const page = await browserNewPage();
+    handlePageNavigations(page);
+    await page.goto(YOUTUBE_URL);
+
+    const blankPage = (await browserPages()).find((maybeBlankPage) =>
+      REG_EXPS.NON_STANDARD_URL_REGEXP.test(maybeBlankPage.url())
+    );
+    await blankPage.close();
+  } else {
+    handlePageNavigations(pages.pop());
+  }
 };
 
 async function launchYouTubeApp(markDisconnectedBrowser) {
@@ -33,30 +56,27 @@ async function launchYouTubeApp(markDisconnectedBrowser) {
     headless: false,
     defaultViewport: null,
     executablePath: process.env.CHROMIUM_BROWSER_PATH,
-    args: [
-      `--user-data-dir=${process.env.BROWSER_PROFILE_PATH}`,
-      '--no-first-run',
-      '--no-default-browser-check',
-      // '--kiosk',
-    ],
+    userDataDir: process.env.BROWSER_PROFILE_PATH,
+    args: ['--no-first-run', '--no-default-browser-check'],
   });
-  browser.on('disconnected', markDisconnectedBrowser);
+
+  browser.once('disconnected', markDisconnectedBrowser);
   browser.on('targetcreated', async (target) => {
-    console.log('Target created url:', target.url(), ' /type:', target.type());
+    console.log('[targetcreated] url:', target.url());
 
     const page = await target.page();
 
     if (target.type() === 'page') {
-      await attachPageEvents(page);
+      handlePageNavigations(page);
     }
   });
 
-  const [page] = await browser.pages();
-  await attachPageEvents(page);
+  await openAppropriatePage({
+    browserPages: browser.pages.bind(browser),
+    browserNewPage: browser.newPage.bind(browser),
+  });
 
-  await page.goto(YOUTUBE_URL);
-
-  return async () => {
+  return async function restoreBrowserView() {
     const lastPage = (await browser.pages()).pop();
     await lastPage.bringToFront();
   };
