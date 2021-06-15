@@ -13,10 +13,12 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "prettier": "prettier --write src",
     "eslint": "eslint src",
+    "create-bookmarklet": "prettier --write src/bookmarklet.js && node -e \"require('dotenv').config();require('./src/bookmarklet.js')();\"",
     "start:dev": "nodemon --exec \"npm run prettier && npm run eslint && node src/index.js\"",
     "start:prod": "node src/index.js"
   },
   "dependencies": {
+    "babel-minify": "^0.5.1",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
     "puppeteer-core": "^10.0.0",
